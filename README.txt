@@ -4,7 +4,7 @@ HỆ THỐNG NHẬN DẠNG BIỂN SỐ XE
 
 1. CÀI ĐẶT:
    pip install opencv-python numpy pillow pytesseract imutils
-cài TestOCR
+và cài Tesseract OCR
 
 2. CHẠY CHƯƠNG TRÌNH:
    python code/main.py
