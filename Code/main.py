@@ -14,7 +14,6 @@ from config import COLORS
 from pipeline import LicensePlatePipeline
 from gui_components import create_labeled_frame
 
-
 class LicensePlateApp:
     """Ứng dụng nhận dạng biển số - Sử dụng pipeline modular"""
 
@@ -25,10 +24,8 @@ class LicensePlateApp:
         self.root.configure(background=COLORS['bg_dark'])
 
         self.file_path = None
-        self.pipeline = LicensePlatePipeline()  # Sử dụng pipeline
+        self.pipeline = LicensePlatePipeline()
         self.result_data = None
-
-        # Chế độ hiển thị
         self.display_mode = 'result'
 
         # Tạo giao diện
@@ -48,9 +45,6 @@ class LicensePlateApp:
               bg=COLORS['bg_medium'], fg=COLORS['primary'],
               font=('Arial', 22, 'bold')).pack(pady=8)
 
-        Label(header, text='Modular Pipeline: Preprocessing → Detection → Segmentation → OCR',
-              bg=COLORS['bg_medium'], fg=COLORS['text_light'],
-              font=('Arial', 9)).pack()
 
     def _create_main_controls(self):
         """3 nút chính"""
@@ -99,8 +93,8 @@ class LicensePlateApp:
 
         # Tab 1: KẾT QUẢ
         self.result_tab = Frame(tabs, bg='#9b59b6', cursor='hand2',
-                               relief=RAISED, bd=0,
-                               highlightthickness=3, highlightbackground='#8e44ad')
+                                relief=RAISED, bd=0,
+                                highlightthickness=3, highlightbackground='#8e44ad')
         self.result_tab.pack(side=LEFT, padx=3)
         self.result_tab.bind('<Button-1>', lambda e: self.switch_mode('result'))
 
@@ -146,7 +140,6 @@ class LicensePlateApp:
 
         self._create_result_frames()
         self._create_process_frames()
-
         self.switch_mode('result')
 
     def _create_result_frames(self):
@@ -173,6 +166,7 @@ class LicensePlateApp:
         self.plate_img.place(relx=0.5, rely=0.5, anchor=CENTER)
         self.result_frames.append(frame2)
 
+        # ✅ THAY ĐỔI: BỎ char_count_label
         # Kết quả
         frame3 = create_labeled_frame(self.display_container, '✅ 3. KẾT QUẢ NHẬN DẠNG', COLORS['success'])
         result_container = Frame(frame3, bg=COLORS['bg_light'], width=470, height=540)
@@ -194,9 +188,7 @@ class LicensePlateApp:
                               fg='#95a5a6', font=('Arial', 11))
         self.timestamp.pack(pady=15)
 
-        self.char_count_label = Label(content, text='', bg=COLORS['bg_light'],
-                                      fg='#3498db', font=('Arial', 10))
-        self.char_count_label.pack(pady=5)
+        # ✅ ĐÃ XÓA: self.char_count_label
 
         self.result_frames.append(frame3)
 
@@ -206,11 +198,11 @@ class LicensePlateApp:
         self.processing_imgs = []
 
         steps = [
-            ('⚫ NGƯỜI 1: BLACKHAT', '#ff6b6b', 'Tiền xử lý'),
-            ('📐 NGƯỜI 1: SOBEL', '#ffd93d', 'Gradient X'),
-            ('🔲 NGƯỜI 1: THRESHOLD', '#6bcf7f', 'Otsu + Morphology'),
-            ('✂️ NGƯỜI 3: TÁCH KÝ TỰ', '#00d2ff', 'Segmentation'),
-            ('🔍 NGƯỜI 3: OCR', '#a29bfe', 'Tesseract')
+            ('BLACKHAT', '#ff6b6b', 'Tiền xử lý'),
+            ('SOBEL', '#ffd93d', 'Gradient X'),
+            ('THRESHOLD', '#6bcf7f', 'Otsu + Morphology'),
+            ('BẮT BIỂN SỐ', '#00d2ff', 'Character Boxes'),
+            ('OCR INPUT', '#a29bfe', 'Binary Image')
         ]
 
         for title, color, desc in steps:
@@ -243,36 +235,44 @@ class LicensePlateApp:
                 frame.grid(row=0, column=col, sticky='nsew', padx=5, pady=5)
 
             self.result_tab.config(bg='#9b59b6', relief=RAISED,
-                                  highlightthickness=3, highlightbackground='#8e44ad')
+                                   highlightthickness=3, highlightbackground='#8e44ad')
             for widget in self.result_tab.winfo_children():
-                widget.config(bg='#9b59b6')
+                if hasattr(widget, 'config'):
+                    widget.config(bg='#9b59b6')
                 for child in widget.winfo_children():
-                    child.config(bg='#9b59b6')
+                    if hasattr(child, 'config'):
+                        child.config(bg='#9b59b6')
 
             self.process_tab.config(bg='#7f8c8d', relief=FLAT,
-                                   highlightthickness=2, highlightbackground='#95a5a6')
+                                    highlightthickness=2, highlightbackground='#95a5a6')
             for widget in self.process_tab.winfo_children():
-                widget.config(bg='#7f8c8d')
+                if hasattr(widget, 'config'):
+                    widget.config(bg='#7f8c8d')
                 for child in widget.winfo_children():
-                    child.config(bg='#7f8c8d')
+                    if hasattr(child, 'config'):
+                        child.config(bg='#7f8c8d')
 
         elif mode == 'process':
             for col, frame in enumerate(self.process_frames):
                 frame.grid(row=0, column=col, sticky='nsew', padx=4, pady=5)
 
             self.process_tab.config(bg='#e67e22', relief=RAISED,
-                                   highlightthickness=3, highlightbackground='#d35400')
+                                    highlightthickness=3, highlightbackground='#d35400')
             for widget in self.process_tab.winfo_children():
-                widget.config(bg='#e67e22')
+                if hasattr(widget, 'config'):
+                    widget.config(bg='#e67e22')
                 for child in widget.winfo_children():
-                    child.config(bg='#e67e22')
+                    if hasattr(child, 'config'):
+                        child.config(bg='#e67e22')
 
             self.result_tab.config(bg='#7f8c8d', relief=FLAT,
-                                  highlightthickness=2, highlightbackground='#95a5a6')
+                                   highlightthickness=2, highlightbackground='#95a5a6')
             for widget in self.result_tab.winfo_children():
-                widget.config(bg='#7f8c8d')
+                if hasattr(widget, 'config'):
+                    widget.config(bg='#7f8c8d')
                 for child in widget.winfo_children():
-                    child.config(bg='#7f8c8d')
+                    if hasattr(child, 'config'):
+                        child.config(bg='#7f8c8d')
 
     def _create_status_bar(self):
         """Status bar"""
@@ -304,6 +304,7 @@ class LicensePlateApp:
                 self.original_img.image = photo
 
                 self.recognize_btn.config(state=NORMAL)
+
                 filename = self.file_path.split("/")[-1].split("\\")[-1]
                 self.status_label.config(text=f'✓ Đã tải: {filename}')
 
@@ -321,98 +322,82 @@ class LicensePlateApp:
         self.root.update()
 
         try:
-            # CHẠY PIPELINE - TẤT CẢ TRONG 1 DÒNG!
+            # CHẠY PIPELINE
             self.result_data = self.pipeline.process(self.file_path)
 
             # Hiển thị các bước xử lý
             steps = self.result_data['processing_steps']
-
             self._display_cv_image(steps['blackhat'], self.processing_imgs[0], True, 280, 500)
             self._display_cv_image(steps['sobel'], self.processing_imgs[1], True, 280, 500)
             self._display_cv_image(steps['threshold'], self.processing_imgs[2], True, 280, 500)
-            self._display_cv_image(steps['segmented'], self.processing_imgs[3], False, 280, 500)
-            self._display_cv_image(steps['ocr'], self.processing_imgs[4], True, 280, 500)
 
-            # Hiển thị biển số
+            self._display_cv_image(steps['detection'], self.processing_imgs[3], False, 280, 500)
+            binary_img = self.pipeline.recognizer.get_binary_image()
+            self._display_cv_image(binary_img, self.processing_imgs[4], True, 280, 500)
+
             self._display_cv_image(self.result_data['plate_image'], self.plate_img, True, 460, 530)
 
-            # Hiển thị kết quả
+            # Hiển thị kết quả text
             text = self.result_data['text']
-            char_count = self.result_data['character_count']
+            if text and text != "Không nhận dạng được":
+                self.result_text.config(text=text, fg='#2ecc71')
+                self.status_label.config(text=f'✓ Nhận dạng thành công: {text}')
+            else:
+                self.result_text.config(text='Không nhận dạng được', fg='#e74c3c')
+                self.status_label.config(text='⚠ Không nhận dạng được biển số')
 
-            self.char_count_label.config(text=f'Đã tách: {char_count} ký tự')
-            self._display_result(text)
+            # Timestamp
+            now = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+            self.timestamp.config(text=f'Thời gian: {now}')
 
-            info = self.result_data['plate_info']
-            self.status_label.config(
-                text=f'✓ Hoàn thành! {info["type"]} | {char_count} ký tự → {text}'
-            )
-
-        except Exception as e:
-            messagebox.showerror('Lỗi', f'Lỗi xử lý:\n{str(e)}')
-            self.status_label.config(text=f'✗ Lỗi')
-            import traceback
-            traceback.print_exc()
-        finally:
             self.progress.stop()
 
+        except Exception as e:
+            self.progress.stop()
+            self.status_label.config(text=f'❌ Lỗi: {str(e)}')
+            messagebox.showerror('Lỗi xử lý', f'Chi tiết lỗi:\n{str(e)}')
+
+    def reset_app(self):
+        """Reset toàn bộ"""
+        self.file_path = None
+        self.result_data = None
+
+        self.original_img.config(image='')
+        self.plate_img.config(image='')
+
+        for img_label in self.processing_imgs:
+            img_label.config(image='')
+
+        self.result_text.config(text='Chưa nhận dạng', fg='#95a5a6')
+        self.timestamp.config(text='')
+
+        self.recognize_btn.config(state=DISABLED)
+        self.status_label.config(text='Trạng thái: Sẵn sàng')
+
+        self.switch_mode('result')
+
     def _resize_keep_ratio(self, pil_image, max_width, max_height):
-        """Resize giữ tỉ lệ"""
-        img_ratio = pil_image.width / pil_image.height
-
-        if img_ratio > max_width / max_height:
-            new_width = max_width
-            new_height = int(max_width / img_ratio)
-        else:
-            new_height = max_height
-            new_width = int(max_height * img_ratio)
-
-        pil_image = pil_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        """Resize giữ tỷ lệ"""
+        pil_image.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
         return ImageTk.PhotoImage(pil_image)
 
-    def _display_cv_image(self, cv_image, label_widget, is_gray=False, max_w=460, max_h=530):
-        """Hiển thị ảnh CV"""
+    def _display_cv_image(self, cv_image, label_widget, is_gray, max_w, max_h):
+        if cv_image is None:
+            return
+
         if is_gray and len(cv_image.shape) == 2:
             cv_image = cv2.cvtColor(cv_image, cv2.COLOR_GRAY2RGB)
         elif len(cv_image.shape) == 3:
             cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
 
         pil_image = Image.fromarray(cv_image)
-        photo = self._resize_keep_ratio(pil_image, max_w, max_h)
+        pil_image.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+        photo = ImageTk.PhotoImage(pil_image)
 
         label_widget.configure(image=photo)
         label_widget.image = photo
 
-    def _display_result(self, text):
-        """Hiển thị kết quả"""
-        if text != "N/A":
-            self.result_text.configure(text=text, fg=COLORS['success'])
-            time = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-            self.timestamp.configure(text=f'⏰ {time}')
-            messagebox.showinfo('Thành công ✓', f'Nhận dạng thành công!\n\nBiển số: {text}')
-        else:
-            self.result_text.configure(text='Không nhận dạng được', fg=COLORS['danger'])
-            messagebox.showwarning('Thất bại ✗', 'Không đọc được!')
-
-    def reset_app(self):
-        """Reset"""
-        self.file_path = None
-        self.result_data = None
-
-        self.original_img.configure(image='')
-        self.plate_img.configure(image='')
-        for img in self.processing_imgs:
-            img.configure(image='')
-
-        self.result_text.configure(text='Chưa nhận dạng', fg='#95a5a6')
-        self.timestamp.configure(text='')
-        self.char_count_label.configure(text='')
-
-        self.recognize_btn.config(state=DISABLED)
-        self.status_label.config(text='Trạng thái: Sẵn sàng')
-        self.switch_mode('result')
-
-
+# Main
 if __name__ == '__main__':
     root = tk.Tk()
     app = LicensePlateApp(root)

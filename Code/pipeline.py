@@ -40,6 +40,8 @@ class LicensePlatePipeline:
         # NGƯỜI 2: Bắt biển số
         plate, info = self.detector.detect(gray, thresh)
 
+        detection_visual = self.detector.get_detection_visual(img)
+
         # NGƯỜI 3A: Tách ký tự
         segmented_visual, characters = self.segmenter.segment(plate)
 
@@ -58,6 +60,7 @@ class LicensePlatePipeline:
                 'blackhat': steps['blackhat'],
                 'sobel': steps['sobel'],
                 'threshold': steps['threshold'],
+                'detection': detection_visual,
                 'segmented': segmented_visual,
                 'ocr': ocr_image
             },

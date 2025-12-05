@@ -1,133 +1,121 @@
 """
 person3_recognition.py
 Module nhận dạng ký tự - NGƯỜI 3 (Phần B)
-Nhiệm vụ: OCR
+ĐÃ TỐI ƯU: Giữ nguyên text gốc từ PaddleOCR, không format lại
 """
+
+import os
+os.environ['FLAGS_logtostderr'] = '0'
+os.environ['GLOG_minloglevel'] = '2'
+
 import cv2
 import numpy as np
-import pytesseract
-from config import OCR_WHITELIST, OCR_CONFIG
-
+from paddleocr import PaddleOCR
 
 class LicensePlateRecognizer:
-    """
-    Nhận dạng ký tự từ ảnh biển số
-
-    Input: cropped_plate hoặc list characters
-    Output: recognized_text
-    """
-
     def __init__(self):
+        print("🔄 Đang khởi tạo PaddleOCR...")
+        self.ocr = PaddleOCR(use_angle_cls=True, lang='en')
         self.ocr_image = None
+        self.binary_image = None
         self.raw_text = None
+        print("✅ PaddleOCR đã sẵn sàng!")
 
     def recognize(self, plate_image):
-        """
-        Nhận dạng text từ biển số (toàn bộ)
+        """Nhận dạng text từ biển số - GIỮ NGUYÊN FORMAT GỐC"""
+        if plate_image is None or not isinstance(plate_image, np.ndarray):
+            return "Không nhận dạng được"
 
-        Args:
-            plate_image: Ảnh biển số đã crop (grayscale)
+        try:
+            # ✅ BƯỚC 1: Tạo gray TRƯỚC
+            if len(plate_image.shape) == 2:
+                gray = plate_image  # ← Khai báo gray ở đây
+                plate_bgr = cv2.cvtColor(plate_image, cv2.COLOR_GRAY2BGR)
+            else:
+                gray = cv2.cvtColor(plate_image, cv2.COLOR_BGR2GRAY)  # ← Khai báo gray
+                plate_bgr = plate_image.copy()
 
-        Returns:
-            str: Text nhận dạng được
-        """
-        # Otsu threshold cho OCR
-        (T, self.ocr_image) = cv2.threshold(plate_image, 0, 255,
-                                            cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+            self.ocr_image = plate_bgr.copy()
 
-        # Đảo ngược nếu cần (chữ đen nền trắng)
-        if np.mean(self.ocr_image) < 127:
-            self.ocr_image = cv2.bitwise_not(self.ocr_image)
+            # ✅ BƯỚC 2: Tạo binary image (SAU KHI ĐÃ CÓ gray)
+            _, self.binary_image = cv2.threshold(
+                gray, 0, 255,
+                cv2.THRESH_BINARY + cv2.THRESH_OTSU
+            )
 
-        # OCR với Tesseract
-        config = OCR_CONFIG + OCR_WHITELIST
-        self.raw_text = pytesseract.image_to_string(self.ocr_image, config=config)
+            # Resize nếu quá nhỏ
+            h, w = plate_bgr.shape[:2]
+            if h < 60:
+                scale = 60 / h
+                new_w = int(w * scale)
+                plate_bgr = cv2.resize(plate_bgr, (new_w, 60),
+                                       interpolation=cv2.INTER_CUBIC)
 
-        # Làm sạch
-        cleaned = "".join(char for char in self.raw_text if char in OCR_WHITELIST)
-        cleaned = cleaned.replace('\n', ' ').replace('\f', '').strip()
+            # PaddleOCR
+            result = self.ocr.ocr(plate_bgr)
 
-        if len(cleaned) < 4:
-            return "N/A"
+            if not result:
+                return "Không nhận dạng được"
+
+            # ✅ THAY ĐỔI: Lấy text và GIỮ NGUYÊN format
+            texts = []
+            for page in result:
+                if isinstance(page, dict):
+                    if 'rec_texts' in page and 'rec_scores' in page:
+                        texts.extend(page['rec_texts'])
+                        print(f"🔍 Phát hiện {len(page['rec_texts'])} text:")
+                        for text, score in zip(page['rec_texts'], page['rec_scores']):
+                            print(f"  - '{text}' (tin cậy: {score:.2f})")
+
+                elif isinstance(page, list):
+                    for line in page:
+                        texts.append(line[1][0])
+                        print(f"  - '{line[1][0]}' (tin cậy: {line[1][1]:.2f})")
+
+            if not texts:
+                return "Không nhận dạng được"
+
+            full_text = "\n".join(texts)
+
+            print(f"📝 Raw text: {repr(full_text)}")
+
+            # ✅ CHỈ LÀM SẠCH ký tự lạ, KHÔNG FORMAT LẠI
+            cleaned = self._clean_text_only(full_text)
+
+            print(f"✅ Kết quả cuối: '{cleaned}'")
+
+            if len(cleaned.replace('\n', '').replace(' ', '')) < 6:
+                return "Không nhận dạng được"
+
+            self.recognized_text = cleaned
+            return cleaned
+
+        except Exception as e:
+            print(f"❌ Lỗi PaddleOCR: {e}")
+            import traceback
+            traceback.print_exc()
+            return "Không nhận dạng được"
+
+    def _clean_text_only(self, text):
+
+        # Cho phép: chữ, số, dấu gạch ngang, chấm, xuống dòng
+        allowed_chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.\n ')
+
+        cleaned = ""
+        for c in text.upper():
+            if c in allowed_chars:
+                cleaned += c
+
+        cleaned = cleaned.strip()
 
         return cleaned
 
-    def recognize_characters(self, characters_list):
-        """
-        Nhận dạng từng ký tự riêng lẻ (nâng cao)
-
-        Args:
-            characters_list: List dict từ CharacterSegmenter
-
-        Returns:
-            str: Text ghép từ các ký tự
-        """
-        results = []
-
-        for char_data in characters_list:
-            char_img = char_data['image']
-
-            # Resize để OCR tốt hơn
-            h, w = char_img.shape
-            if h < 20 or w < 10:
-                scale = max(20 / h, 10 / w)
-                new_h, new_w = int(h * scale), int(w * scale)
-                char_img = cv2.resize(char_img, (new_w, new_h))
-
-            # OCR single character
-            config = '--oem 3 --psm 10 -c tessedit_char_whitelist=' + OCR_WHITELIST
-            text = pytesseract.image_to_string(char_img, config=config)
-
-            # Clean
-            cleaned = "".join(c for c in text if c in OCR_WHITELIST).strip()
-
-            if cleaned:
-                results.append(cleaned)
-
-        return ''.join(results) if results else "N/A"
-
     def get_ocr_image(self):
-        """Lấy ảnh đã xử lý cho OCR (để debug)"""
+        if self.ocr_image is None:
+            return np.zeros((60, 200, 3), dtype=np.uint8)
         return self.ocr_image
 
-
-# Test module
-if __name__ == '__main__':
-    import sys
-    from person1_preprocessing import ImagePreprocessor
-    from person2_detection import LicensePlateDetector
-    from person3_segmentation import CharacterSegmenter
-
-    if len(sys.argv) < 2:
-        print("Usage: python person3_recognition.py <image_path>")
-        sys.exit(1)
-
-    # Full pipeline test
-    img = cv2.imread(sys.argv[1])
-    import imutils
-
-    img = imutils.resize(img, width=600)
-
-    # Bước 1-2-3
-    preprocessor = ImagePreprocessor()
-    gray, thresh, _ = preprocessor.process(img)
-
-    detector = LicensePlateDetector()
-    plate, info = detector.detect(gray, thresh)
-
-    segmenter = CharacterSegmenter()
-    visual, characters = segmenter.segment(plate)
-
-    # Bước 4: OCR
-    recognizer = LicensePlateRecognizer()
-
-    # Method 1: OCR toàn bộ
-    text1 = recognizer.recognize(plate)
-    print(f"✓ OCR toàn bộ: {text1}")
-
-    # Method 2: OCR từng ký tự
-    text2 = recognizer.recognize_characters(characters)
-    print(f"✓ OCR từng ký tự: {text2}")
-
-    cv2.imshow('OCR Image', recognizer.get_ocr_image())
-    cv2.waitKey(0)
+    def get_binary_image(self):
+        if self.binary_image is None:
+            return np.zeros((60, 200), dtype=np.uint8)
+        return self.binary_image
